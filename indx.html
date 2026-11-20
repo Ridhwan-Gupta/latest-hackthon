@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SplitSync Pro - Multi-Group Expense Splitter & UPI Engine</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- External CSS -->
+  <link rel="stylesheet" href="style.css">
+  <!-- Dynamic UPI QR Generator CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+<body>
+
+  <div class="app-container">
+    <!-- Top Bar with Multi-Group Switcher & Theme Toggle -->
+    <header class="top-bar">
+      <div class="brand-section">
+        <div class="brand-logo">⚡</div>
+        <div>
+          <h1>SplitSync Pro</h1>
+          <p>Multi-Group Expense Settler & UPI Deep Links</p>
+        </div>
+      </div>
+
+      <div class="header-controls">
+        <!-- Active Group Switcher -->
+        <div class="group-selector-box">
+          <span style="font-size: 1.1rem;">👥</span>
+          <select id="group-select" title="Switch Group"></select>
+        </div>
+
+        <button class="btn btn-secondary btn-sm" id="btn-open-create-group">
+          + New Group
+        </button>
+
+        <!-- Theme Toggle Button -->
+        <button class="theme-toggle-btn" id="btn-theme-toggle" title="Switch between Dark and White mode">
+          <span id="theme-toggle-icon">☀️</span>
+          <span id="theme-toggle-text">Light Mode</span>
+        </button>
+
+        <button class="btn btn-secondary btn-sm" id="btn-export-backup" title="Export Backup JSON">
+          💾 Backup
+        </button>
+      </div>
+    </header>
+
+    <!-- Top Summary Metrics for Active Group -->
+    <section class="summary-grid">
+      <div class="summary-card">
+        <div class="summary-label">Group Spend <span id="group-category-badge" style="color:var(--primary); font-weight:700;">🏠 Hostel</span></div>
+        <div class="summary-value" id="stat-total-spend">₹0.00</div>
+        <div class="summary-subtext" id="stat-expense-count">0 expenses recorded</div>
+      </div>
+
+      <div class="summary-card">
+        <div class="summary-label">Transfers Saved <span>⚡</span></div>
+        <div class="summary-value" id="stat-tx-saved" style="color: var(--primary);">0</div>
+        <div class="summary-subtext" id="stat-reduction-summary">Min-Cash-Flow graph active</div>
+      </div>
+
+      <div class="summary-card">
+        <div class="summary-label">Group Mates <span>👥</span></div>
+        <div class="summary-value" id="stat-members-count">4</div>
+        <div class="summary-subtext">Active participants</div>
+      </div>
+
+      <div class="summary-card">
+        <div class="summary-label">All Groups Total <span>🌐</span></div>
+        <div class="summary-value" id="stat-all-groups-spend">₹0.00</div>
+        <div class="summary-subtext" id="stat-all-groups-count">across 3 groups</div>
+      </div>
+    </section>
+
+    <!-- Perspective Widget: "Viewing as [Member]" -->
+    <div class="perspective-bar">
+      <div class="perspective-select-wrap">
+        <span>👤 <strong>My Perspective:</strong></span>
+        <select id="perspective-user-select"></select>
+      </div>
+      <div id="perspective-balance-msg" style="font-weight: 700;">
+        Calculating your balance...
+      </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <nav class="tabs-bar">
+      <button class="tab-btn active" data-tab="tab-settlements"><span>⚡</span> Smart Settlements</button>
+      <button class="tab-btn" data-tab="tab-add-expense"><span>➕</span> Add / Scan Expense</button>
+      <button class="tab-btn" data-tab="tab-analytics"><span>📊</span> Analytics & Trends</button>
+      <button class="tab-btn" data-tab="tab-expenses-feed"><span>📜</span> Expense Feed</button>
+      <button class="tab-btn" data-tab="tab-members"><span>👥</span> Group Members & UPI</button>
+    </nav>
+
+    <!-- TAB 1: Smart Settlements -->
+    <main id="tab-settlements" class="tab-panel active">
+      <div class="reduction-banner">
+        <div>
+          <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 2px;">Min-Cash-Flow Graph Optimization</h3>
+          <p style="color: var(--text-muted); font-size: 0.82rem;">
+            Raw bilateral matrix requires <span id="raw-tx-count" style="color: #f87171; font-weight: 700;">0</span> transfers.
+            Optimized down to <span id="opt-tx-count" style="color: var(--primary); font-weight: 700;">0</span> payments!
+          </p>
+        </div>
+        <div style="display: flex; align-items: baseline; gap: 8px;">
+          <div class="reduction-number" id="reduction-percentage">0%</div>
+          <span style="font-size: 0.8rem; color: var(--text-muted);">Less Transfers</span>
+        </div>
+      </div>
+
+      <div class="grid-2col">
+        <div>
+          <div class="card-header">
+            <h2 class="card-title"><span>💳</span> Clean Debt Settlements</h2>
+            <button class="btn btn-secondary btn-sm" id="btn-export-whatsapp">
+              💬 Copy WhatsApp Summary
+            </button>
+          </div>
+          <div id="settlement-list" class="settlement-card-list"></div>
+        </div>
+
+        <div>
+          <div class="card">
+            <h2 class="card-title" style="margin-bottom: 14px;"><span>📊</span> Net Group Balances</h2>
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 14px;">
+              Green = Gets back money. Red = Owes money to the group.
+            </p>
+            <div id="net-balances-list"></div>
+          </div>
+
+          <div class="card" style="background: var(--subtle-card);">
+            <h3 style="font-size: 0.92rem; font-weight: 700; margin-bottom: 6px;">Algorithm Viva Explanation</h3>
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 10px;">
+              Solves the NP-hard Zero-Sum Subset Partitioning problem via <strong>$O(3^N)$ Bitmask DP</strong> paired with greedy creditor/debtor pairing to guarantee minimal payment count.
+            </p>
+            <button class="btn btn-secondary btn-sm btn-block" id="btn-view-raw-modal">
+              View Unoptimized Bilateral Debts Matrix
+            </button>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- TAB 2: Add / Scan Expense -->
+    <section id="tab-add-expense" class="tab-panel">
+      <div class="grid-2col">
+        <div class="card">
+          <h2 class="card-title" style="margin-bottom: 18px;"><span>➕</span> Log New Expense</h2>
+
+          <form id="form-expense">
+            <div class="form-group">
+              <label>Expense Title</label>
+              <input type="text" id="expense-title" placeholder="e.g. Swiggy Late Night, Petrol, Wifi" required>
+            </div>
+
+            <div class="form-group">
+              <label>Category</label>
+              <div class="category-pills" id="category-pills-selector">
+                <span class="category-chip active" data-cat="🍕 Food & Dining">🍕 Food</span>
+                <span class="category-chip" data-cat="📶 Wi-Fi & Utilities">📶 Wi-Fi</span>
+                <span class="category-chip" data-cat="🚗 Travel & Petrol">🚗 Travel</span>
+                <span class="category-chip" data-cat="🛒 Room Supplies">🛒 Supplies</span>
+                <span class="category-chip" data-cat="🎟️ Fests & Fun">🎟️ Fests</span>
+                <span class="category-chip" data-cat="📦 Other">📦 Other</span>
+              </div>
+            </div>
+
+            <div class="input-row">
+              <div class="form-group">
+                <label>Total Amount (₹)</label>
+                <input type="number" id="expense-amount" step="0.01" min="1" placeholder="0.00" required>
+              </div>
+              <div class="form-group">
+                <label>Paid By</label>
+                <select id="expense-payer" required></select>
+              </div>
+            </div>
+
+            <!-- Split Modes -->
+            <label>Split Method</label>
+            <div class="split-mode-grid">
+              <div class="split-mode-card active" data-mode="equal"><strong>⚖️ Equal</strong><span>Even split</span></div>
+              <div class="split-mode-card" data-mode="exact"><strong>💵 Exact</strong><span>Custom ₹</span></div>
+              <div class="split-mode-card" data-mode="shares"><strong>🔢 Shares</strong><span>Ratio (1x, 2x)</span></div>
+              <div class="split-mode-card" data-mode="itemized"><strong>📷 Itemized</strong><span>Bill Items</span></div>
+            </div>
+
+            <!-- Equal Split Options -->
+            <div id="split-section-equal" class="split-options-section">
+              <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 8px;">Select participants:</p>
+              <div id="equal-members-chips" class="member-chip-group"></div>
+            </div>
+
+            <!-- Exact Split Options -->
+            <div id="split-section-exact" class="split-options-section" style="display: none;">
+              <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 8px;">Enter exact ₹ share per person:</p>
+              <div id="exact-members-inputs"></div>
+              <div style="font-size: 0.8rem; margin-top: 8px; color: var(--text-muted);" id="exact-total-validation"></div>
+            </div>
+
+            <!-- Shares Split Options -->
+            <div id="split-section-shares" class="split-options-section" style="display: none;">
+              <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 8px;">Assign unit weights (e.g. 2 shares):</p>
+              <div id="shares-members-inputs"></div>
+            </div>
+
+            <!-- Itemized Split Options -->
+            <div id="split-section-itemized" class="split-options-section" style="display: none;">
+              <p style="font-size: 0.82rem; font-weight: 700; margin-bottom: 6px;">🚀 Quick Demo Receipts (1-Click Test):</p>
+              <div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px;" id="demo-receipts-chips"></div>
+
+              <div id="itemized-table-container" style="display: none;">
+                <table class="item-table">
+                  <thead>
+                    <tr><th>Item</th><th>Qty</th><th>Price (₹)</th><th>Shared By</th></tr>
+                  </thead>
+                  <tbody id="itemized-tbody"></tbody>
+                </table>
+                <div style="font-size: 0.78rem; color: var(--text-dim); margin-top: 8px;">
+                  💡 Extra fees (GST, packaging, delivery) are split <strong>proportionally</strong>!
+                </div>
+              </div>
+            </div>
+
+            <div style="margin-top: 22px;">
+              <button type="submit" class="btn btn-primary btn-block">Save Expense & Settle Group</button>
+            </div>
+          </form>
+        </div>
+
+        <div>
+          <div class="card">
+            <h3 class="card-title"><span>💡</span> Smart Split Highlights</h3>
+            <div style="font-size: 0.83rem; color: var(--text-muted); display:flex; flex-direction:column; gap:12px; margin-top:14px;">
+              <p><strong>Multi-Group Isolated:</strong> Each group has its own members, expenses, and independent debt optimization graph.</p>
+              <p><strong>Light & Dark Mode:</strong> Seamless toggle with persistence across sessions.</p>
+              <p><strong>Paise Precision:</strong> Integer-based calculations eliminate the infamous ₹0.01 fractional drop on ₹100/3 splits.</p>
+              <p><strong>Native UPI Deep Links:</strong> One tap opens Google Pay, PhonePe, or Paytm with payee VPA pre-filled.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: Analytics & Spending Breakdown -->
+    <section id="tab-analytics" class="tab-panel">
+      <div class="grid-2col">
+        <div class="card">
+          <h2 class="card-title" style="margin-bottom: 16px;"><span>📈</span> Group Spending by Category</h2>
+          <div class="category-breakdown" id="category-progress-list"></div>
+        </div>
+
+        <div class="card">
+          <h2 class="card-title" style="margin-bottom: 16px;"><span>🏆</span> Top Spenders in this Group</h2>
+          <div id="top-spenders-list" style="display:flex; flex-direction:column; gap:10px;"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 4: Expense Feed -->
+    <section id="tab-expenses-feed" class="tab-panel">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title"><span>📜</span> Expense Feed for <span id="feed-group-name">Group</span></h2>
+          <button class="btn btn-danger btn-sm" id="btn-clear-group-expenses">Clear Group Expenses</button>
+        </div>
+        <div id="expenses-feed-list"></div>
+      </div>
+    </section>
+
+    <!-- TAB 5: Group Members & UPI Settings -->
+    <section id="tab-members" class="tab-panel">
+      <div class="grid-2col">
+        <div class="card">
+          <h2 class="card-title" style="margin-bottom: 18px;"><span>➕</span> Add Member to this Group</h2>
+          <form id="form-add-member">
+            <div class="form-group">
+              <label>Full Name</label>
+              <input type="text" id="member-name" placeholder="e.g. Sahil Kapoor" required>
+            </div>
+            <div class="form-group">
+              <label>UPI VPA Address</label>
+              <input type="text" id="member-upi" placeholder="e.g. sahil@okhdfcbank" required>
+            </div>
+            <button type="submit" class="btn btn-primary btn-block">Add to Group</button>
+          </form>
+        </div>
+
+        <div class="card">
+          <h2 class="card-title" style="margin-bottom: 18px;"><span>👥</span> Current Members Roster</h2>
+          <div id="members-roster-list"></div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- MODAL: Create New Group -->
+  <div class="modal-overlay" id="modal-create-group">
+    <div class="modal-container">
+      <button class="modal-close" id="modal-close-group-btn">&times;</button>
+      <h3 style="font-size: 1.2rem; font-weight: 700; margin-bottom: 14px;">Create New Expense Group</h3>
+      <form id="form-create-group">
+        <div class="form-group">
+          <label>Group Name</label>
+          <input type="text" id="new-group-name" placeholder="e.g. Goa Trip 2026, Flat 402, Project Team" required>
+        </div>
+        <div class="form-group">
+          <label>Category</label>
+          <select id="new-group-category">
+            <option value="🏠 Hostel Room">🏠 Hostel Room</option>
+            <option value="🚗 Trip / Travel">🚗 Trip / Travel</option>
+            <option value="💻 Hackathon / Project">💻 Hackathon / Project</option>
+            <option value="🏢 Flat / Apartment">🏢 Flat / Apartment</option>
+            <option value="🍕 Foodies Club">🍕 Foodies Club</option>
+          </select>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">Create Group</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: Scannable UPI QR Code -->
+  <div class="modal-overlay" id="qr-modal">
+    <div class="modal-container">
+      <button class="modal-close" id="qr-modal-close-btn">&times;</button>
+      <h3 style="font-size: 1.15rem; font-weight: 700; text-align: center; margin-bottom: 4px;">Scan to Settle via UPI</h3>
+      <p style="font-size: 0.82rem; color: var(--text-muted); text-align: center;" id="qr-modal-subtitle">Payer ➔ Payee</p>
+      <div class="qr-container">
+        <div id="qr-code-canvas"></div>
+        <div style="font-size: 1.45rem; font-weight: 800; color: var(--primary); margin-bottom: 4px;" id="qr-modal-amount">₹0.00</div>
+        <div style="font-size: 0.82rem; color: var(--text-muted);" id="qr-modal-vpa">payee@upi</div>
+      </div>
+      <a href="#" target="_blank" class="btn btn-primary btn-block" id="qr-direct-upi-btn">Open UPI App</a>
+    </div>
+  </div>
+
+  <!-- MODAL: Raw Bilateral Debts -->
+  <div class="modal-overlay" id="raw-modal">
+    <div class="modal-container" style="max-width: 520px;">
+      <button class="modal-close" id="raw-modal-close-btn">&times;</button>
+      <h3 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 8px;">Unoptimized Bilateral Debts</h3>
+      <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 14px;">
+        Unoptimized transfers before applying our Min-Cash-Flow graph algorithm:
+      </p>
+      <div id="raw-debts-list" style="max-height: 280px; overflow-y: auto; display:flex; flex-direction:column; gap:8px;"></div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div class="toast" id="toast">
+    <span id="toast-icon">✓</span>
+    <span id="toast-msg">Notification</span>
+  </div>
+
+  <!-- External JavaScript -->
+  <script src="app.js"></script>
+</body>
+</html>
